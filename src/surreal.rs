@@ -190,13 +190,15 @@ impl SurrealDbClient {
             .map_err(|e| SurrealDbError::new(&format!("Error parsing json result: {}",query),Some(Box::new(e))))?;
         Ok(l)
     }
-    pub fn query_single<T>(&mut self, query: &str)->Result<SurrealResult<T>,SurrealDbError> where T: for<'a> Deserialize<'a> {
+    pub fn query_single<T>(&mut self, query: &str)->Result<SurrealStatementReply<T>,SurrealDbError> where T: for<'a> Deserialize<'a> {
         let value = self.query(query)?;
         let value_string = from_utf8(&value).unwrap();
         println!("{}",value_string);
-        let result: SurrealResult<T> = serde_json::from_slice(&value)
+        let mut result: SurrealResult<T> = serde_json::from_slice(&value)
             .map_err(|e| SurrealDbError::new(&format!("Error parsing json result: {}",query),Some(Box::new(e))))?;
-        Ok(result)
+        let first_result = result.0.pop().ok_or(SurrealDbError::new("Missing reply",None))?;
+
+        Ok(first_result)
     }
     // pub fn query_single<'de, T> where T: Deserialize<'de> (&mut self, query: &str)->Result<SurrealResult<T>,SurrealDbError> where T: Deserialize {
     //     let value = self.query(query)?;
@@ -213,7 +215,7 @@ mod test {
     use serde::Deserialize;
     use serde_json::Value;
     use simplehttp::{simplehttp_reqwest::SimpleHttpClientReqwest};
-    use crate::surreal::SurrealResult;
+    use crate::surreal::{SurrealResult, SurrealStatementReply};
 
     use super::SurrealDbClient;
 
@@ -269,6 +271,7 @@ mod test {
     fn test_query_single(){
  
         let mut surreal = create_test_client();
+        surreal.delete("unit_query_single", None).unwrap();
         let city1 = r#"{"name":"Hanoi"}"#.as_bytes();
         let city2 = r#"{"name":"Isesaki"}"#.as_bytes();
         let city3 = r#"{"name":"Zeleznogorsk"}"#.as_bytes();
@@ -277,15 +280,20 @@ mod test {
         let r2 = surreal.insert_for_id("unit_query_single", city2).unwrap();
         println!("Result: {}",r2);
         let r3 = surreal.insert_for_id("unit_query_single", city3).unwrap();
-        println!("Result: {}",r2);
-        let res: SurrealResult<City> = surreal.query_single("select city as name from city;").expect("huh?");
+        println!("Result: {}",r3);
+        let res: SurrealStatementReply<City> = surreal.query_single("select name from unit_query_single;").expect("huh?");
         println!("RESULT: {:?}", res);
-        let v = res.0.iter().flat_map(|r|r.result.iter()).map(|c|c.name.as_str()).collect::<Vec<&str>>();
+        let v = res.result.iter().map(|c|c.name.as_str()).collect::<Vec<&str>>();
         println!("RESULT2: {:?}", v);
         assert!(v.contains(&"Zeleznogorsk"));
-        surreal.delete("unit_query_single", None);
-        let res: SurrealResult<City> = surreal.query_single("select city as name from city;").expect("huh?");
-        assert_eq!() res.0.len() 
+        let res: SurrealStatementReply<City> = surreal.query_single("select name from unit_query_single;").expect("huh?");
+        println!("RESULT2: {:?}", res);
+        assert_eq!(3,res.result.len());
+        let res = surreal.delete("unit_query_single", None).unwrap();
+        println!("Result: {}",from_utf8(&res).unwrap());
+        
+        let res: SurrealStatementReply<City> = surreal.query_single("select name from unit_query_single;").expect("huh?");
+        assert_eq!(0,res.result.len())  
 
     }
 
