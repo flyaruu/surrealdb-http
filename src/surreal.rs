@@ -3,7 +3,7 @@ use std::{error::Error, fmt::Display, str::from_utf8};
 
 use base64::{Engine as _, engine::general_purpose};
 use serde::{Deserialize};
-use serde_json::{Value, from_value, Map};
+use serde_json::{Value, from_value};
 use simplehttp::simplehttp::SimpleHttpClient;
 
 pub struct SurrealDbClient {
@@ -27,7 +27,7 @@ pub struct DynamicSurrealResult (Vec<DynamicSurrealStatementReply>);
 
 impl DynamicSurrealResult {
     pub fn take_first(mut self)->Result<DynamicSurrealStatementReply,SurrealDbError> {
-        Ok(self.0.pop().ok_or(SurrealDbError("Missing result field".to_owned(), None))?)
+        self.0.pop().ok_or(SurrealDbError("Missing result field".to_owned(), None))
     }    
 }
 #[derive(Deserialize,Debug)]
@@ -215,7 +215,7 @@ mod test {
     use serde::Deserialize;
     use serde_json::Value;
     use simplehttp::{simplehttp_reqwest::SimpleHttpClientReqwest};
-    use crate::surreal::{SurrealResult, SurrealStatementReply};
+    use crate::surreal::SurrealStatementReply;
 
     use super::SurrealDbClient;
 
@@ -253,7 +253,7 @@ mod test {
     fn test_single(){
         let mut surreal = create_test_client();
         let example = r#"{"kip":{"aap":"sji"},"aap":{"mies":"sjo"}}"#;
-        surreal.insert("test_table", Some("puz9ai2wrzcz52be7g04"), example.as_bytes());
+        surreal.insert("test_table", Some("puz9ai2wrzcz52be7g04"), example.as_bytes()).unwrap();
         let res = surreal.get("test_table", "puz9ai2wrzcz52be7g04").unwrap();
         println!("Result: {}",from_utf8(&res).unwrap());
         let v: Value = serde_json::from_slice(&res).unwrap();
