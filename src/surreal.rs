@@ -199,7 +199,7 @@ impl SurrealDbClient {
 
 #[cfg(test)]
 mod test {
-    use std::{str::from_utf8, env, collections::HashMap};
+    use std::{str::from_utf8, env};
 
     use serde::Deserialize;
     use serde_json::Value;
@@ -209,20 +209,14 @@ mod test {
     use super::SurrealDbClient;
 
     fn create_test_client()->SurrealDbClient {
-        let env: HashMap<String,String> = env::vars().collect();
-        let host = "http://localhost:8000".to_owned();
-        let host = env.get("SURREAL_URL").unwrap_or(&host);
-        let username = "root".to_owned();
-        let username = env.get("SURREAL_USER"). unwrap_or(&username);
-        let password = "root".to_owned();
-        let password = env.get("SURREAL_PASS").unwrap_or(&password);
-        let namespace = "myns".to_owned();
-        let namespace = env.get("SURREAL_NAMESPACE").unwrap_or(&namespace);
-        let database = "mydb".to_owned();
-        let database = env.get("SURREAL_DATABASE").unwrap_or(&database);
+        let host = env::var("SURREAL_URL").unwrap_or("http://localhost:8000".to_owned());
+        let username = env::var("SURREAL_USER").unwrap_or("root".to_owned());
+        let password = env::var("SURREAL_PASS").unwrap_or("root".to_owned());
+        let namespace = env::var("SURREAL_NAMESPACE").unwrap_or("myns".to_owned());
+        let database = env::var("SURREAL_DATABASE").unwrap_or("mydb".to_owned());
 
         let client = SimpleHttpClientReqwest::new_reqwest().unwrap();
-        SurrealDbClient::new(username, password, host, namespace, database, client)
+        SurrealDbClient::new(&username, &password, &host, &namespace, &database, client)
     }
 
     #[test]
