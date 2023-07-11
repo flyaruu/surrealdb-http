@@ -6,7 +6,7 @@ jobs:
       - image: surrealdb/surrealdb:latest
         environment:
           SOME: thing
-        command: 
+        command: start --log trace --user root --pass root
     steps:
       - checkout
       - run: cargo build
