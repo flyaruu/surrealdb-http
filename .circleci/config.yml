@@ -3,10 +3,15 @@ jobs:
   build:
     docker:
       - image: cimg/rust:1.70.0
-      - image: surrealdb/surrealdb:latest
         environment:
-          SOME: thing
+          SURREAL_URL: http://surreal:8000
+          SURREAL_USER: root
+          SURREAL_PASS: root
+          SURREAL_NAMESPACE: myns
+          SURREAL_DATABASE: mydb
+      - image: surrealdb/surrealdb:latest
+        name: surreal
         command: start --log trace --user root --pass root
     steps:
       - checkout
-      - run: cargo build
+      - run: cargo test
