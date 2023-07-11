@@ -3,6 +3,10 @@ jobs:
   build:
     docker:
       - image: cimg/rust:1.70.0
+      - image: surrealdb/surrealdb:latest
+        environment:
+          SOME: thing
+        command: 
     steps:
       - checkout
       - run: cargo build

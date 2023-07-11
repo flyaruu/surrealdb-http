@@ -20,7 +20,7 @@ pub struct SurrealDbError(String, Option<Box<dyn Error>>);
 #[derive(Deserialize,Debug,PartialEq, Eq)]
 pub enum SurrealStatus {
     OK,
-    ERROR,
+    ERR,
 }
 #[derive(Deserialize,Debug)]
 pub struct DynamicSurrealResult (Vec<DynamicSurrealStatementReply>);
@@ -53,8 +53,8 @@ impl DynamicSurrealStatementReply {
 pub struct SurrealResult<T> (Vec<SurrealStatementReply<T>>);
 #[derive(Deserialize,Debug)]
 pub struct SurrealStatementReply<T> {
-    status: SurrealStatus,
-    result: Vec<T>,
+    pub status: SurrealStatus,
+    pub result: Vec<T>,
 }
 
 
@@ -138,10 +138,8 @@ impl SurrealDbClient {
             .map_err(|e| SurrealDbError::new(&format!("Error querying table: {} key: {:?}",table,key),Some(Box::new(e))))?;
         let parsed: Value = serde_json::from_slice(&inserted)
             .map_err(|e| SurrealDbError::new(&format!("Error parsing json result from insert at table: {} key: {:?}",table, key),Some(Box::new(e))))?;
-
         let l = from_value::<DynamicSurrealResult>(parsed)
             .map_err(|e| SurrealDbError::new(&format!("Error interpreting json result from insert at table: {} key: {:?}",table, key),Some(Box::new(e))))?;
-
         Ok(l)
     }
 
@@ -184,8 +182,6 @@ impl SurrealDbClient {
         let value = self.query(query)?;
         let v: Value = serde_json::from_slice(&value)
             .map_err(|e| SurrealDbError::new(&format!("Error parsing json result: {}",query),Some(Box::new(e))))?;
-        // let l = v.as_array().unwrap().first().unwrap();
-        // println!("Thing: {:?}",l);
         let l = from_value::<DynamicSurrealResult>(v)
             .map_err(|e| SurrealDbError::new(&format!("Error parsing json result: {}",query),Some(Box::new(e))))?;
         Ok(l)
@@ -197,20 +193,13 @@ impl SurrealDbClient {
         let mut result: SurrealResult<T> = serde_json::from_slice(&value)
             .map_err(|e| SurrealDbError::new(&format!("Error parsing json result: {}",query),Some(Box::new(e))))?;
         let first_result = result.0.pop().ok_or(SurrealDbError::new("Missing reply",None))?;
-
         Ok(first_result)
     }
-    // pub fn query_single<'de, T> where T: Deserialize<'de> (&mut self, query: &str)->Result<SurrealResult<T>,SurrealDbError> where T: Deserialize {
-    //     let value = self.query(query)?;
-    //     let result: SurrealResult<T> = serde_json::from_slice(&value)
-    //         .map_err(|e| SurrealDbError::new(&format!("Error parsing json result: {}",query),Some(Box::new(e))))?;
-    //     Ok(result)
-    // }
 }
 
 #[cfg(test)]
 mod test {
-    use std::{str::from_utf8};
+    use std::{str::from_utf8, env, collections::HashMap};
 
     use serde::Deserialize;
     use serde_json::Value;
@@ -220,8 +209,20 @@ mod test {
     use super::SurrealDbClient;
 
     fn create_test_client()->SurrealDbClient {
+        let env: HashMap<String,String> = env::vars().collect();
+        let host = "http://localhost:8000".to_owned();
+        let host = env.get("SURREAL_URL").unwrap_or(&host);
+        let username = "root".to_owned();
+        let username = env.get("SURREAL_USER"). unwrap_or(&username);
+        let password = "root".to_owned();
+        let password = env.get("SURREAL_PASS").unwrap_or(&password);
+        let namespace = "myns".to_owned();
+        let namespace = env.get("SURREAL_NAMESPACE").unwrap_or(&namespace);
+        let database = "mydb".to_owned();
+        let database = env.get("SURREAL_DATABASE").unwrap_or(&database);
+
         let client = SimpleHttpClientReqwest::new_reqwest().unwrap();
-        SurrealDbClient::new("root", "root", "http://localhost:8000", "myns", "mydb", client)
+        SurrealDbClient::new(username, password, host, namespace, database, client)
     }
 
     #[test]
@@ -277,17 +278,15 @@ mod test {
         let city3 = r#"{"name":"Zeleznogorsk"}"#.as_bytes();
         let r1 = surreal.insert_for_id("unit_query_single", city1).unwrap();
         println!("Result: {}",r1);
-        let r2 = surreal.insert_for_id("unit_query_single", city2).unwrap();
-        println!("Result: {}",r2);
-        let r3 = surreal.insert_for_id("unit_query_single", city3).unwrap();
-        println!("Result: {}",r3);
+        let _ = surreal.insert_for_id("unit_query_single", city2).unwrap();
+        let _ = surreal.insert_for_id("unit_query_single", city3).unwrap();
         let res: SurrealStatementReply<City> = surreal.query_single("select name from unit_query_single;").expect("huh?");
         println!("RESULT: {:?}", res);
         let v = res.result.iter().map(|c|c.name.as_str()).collect::<Vec<&str>>();
         println!("RESULT2: {:?}", v);
         assert!(v.contains(&"Zeleznogorsk"));
-        let res: SurrealStatementReply<City> = surreal.query_single("select name from unit_query_single;").expect("huh?");
-        println!("RESULT2: {:?}", res);
+        // let res: SurrealStatementReply<City> = surreal.query_single("select name from unit_query_single;").expect("huh?");
+        // println!("RESULT2: {:?}", res);
         assert_eq!(3,res.result.len());
         let res = surreal.delete("unit_query_single", None).unwrap();
         println!("Result: {}",from_utf8(&res).unwrap());
