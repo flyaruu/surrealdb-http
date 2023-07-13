@@ -2,7 +2,7 @@
 use std::{error::Error, fmt::Display, str::from_utf8};
 
 use base64::{Engine as _, engine::general_purpose};
-use serde::{Deserialize};
+use serde::Deserialize;
 use serde_json::{Value, from_value};
 use simplehttp::simplehttp::SimpleHttpClient;
 
@@ -104,6 +104,7 @@ impl SurrealDbClient {
         Ok(result)
     }
 
+    /// Delete the supplied key from the table. **If no key is supplied, the whole table is deleted**
     pub fn delete(&mut self, table: &str, key: Option<&str>)->Result<Vec<u8>, SurrealDbError> {
         let headers = [
             ("DB",self.database.as_str()),
@@ -123,7 +124,7 @@ impl SurrealDbClient {
     }
 
     // DynamicSurrealResult
-    pub fn insert(&mut self, table: &str, key: Option<&str>, value: &[u8])->Result<DynamicSurrealResult, SurrealDbError> {
+    fn insert(&mut self, table: &str, key: Option<&str>, value: &[u8])->Result<DynamicSurrealResult, SurrealDbError> {
         let headers = [
             ("DB",self.database.as_str()),
             ("NS",self.namespace.as_str()),
@@ -143,6 +144,7 @@ impl SurrealDbClient {
         Ok(l)
     }
 
+    /// Insert a record, without an id, and return the generated id as string
     pub fn insert_for_id(&mut self, table: &str, value: &[u8])->Result<String, SurrealDbError> {
         let res = self.insert(table, None, value)?
             .0
