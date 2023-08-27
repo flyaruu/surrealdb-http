@@ -1,0 +1,8 @@
+version: '2'
+services:
+  surrealdb:
+    image: flyaruu/surrealdb-dvdrental:latest
+    environment:
+      SOMETHING: something
+    ports:
+      - 8000:8000

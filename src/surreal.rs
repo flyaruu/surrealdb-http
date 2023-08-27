@@ -252,10 +252,8 @@ mod test {
         let example = r#"{"kip":{"aap":"sji"},"aap":{"mies":"sjo"}}"#;
         surreal.insert("test_table", Some("puz9ai2wrzcz52be7g04"), example.as_bytes()).unwrap();
         let res = surreal.get("test_table", "puz9ai2wrzcz52be7g04").unwrap();
-        println!("Result: {}",from_utf8(&res).unwrap());
         let v: Value = serde_json::from_slice(&res).unwrap();
         let first_object = v.as_array().unwrap().first().unwrap().as_object().unwrap().get("result").unwrap().as_array().unwrap().first().unwrap();
-        println!("Thing: {:?}",first_object);
         let id = first_object.get("id").unwrap().as_str().unwrap();
         assert_eq!("test_table:puz9ai2wrzcz52be7g04",id);
     }
@@ -273,20 +271,13 @@ mod test {
         let city2 = r#"{"name":"Isesaki"}"#.as_bytes();
         let city3 = r#"{"name":"Zeleznogorsk"}"#.as_bytes();
         let r1 = surreal.insert_for_id("unit_query_single", city1).unwrap();
-        println!("Result: {}",r1);
         let _ = surreal.insert_for_id("unit_query_single", city2).unwrap();
         let _ = surreal.insert_for_id("unit_query_single", city3).unwrap();
         let res: SurrealStatementReply<City> = surreal.query_single("select name from unit_query_single;").expect("huh?");
-        println!("RESULT: {:?}", res);
         let v = res.result.iter().map(|c|c.name.as_str()).collect::<Vec<&str>>();
-        println!("RESULT2: {:?}", v);
         assert!(v.contains(&"Zeleznogorsk"));
-        // let res: SurrealStatementReply<City> = surreal.query_single("select name from unit_query_single;").expect("huh?");
-        // println!("RESULT2: {:?}", res);
         assert_eq!(3,res.result.len());
         let res = surreal.delete("unit_query_single", None).unwrap();
-        println!("Result: {}",from_utf8(&res).unwrap());
-        
         let res: SurrealStatementReply<City> = surreal.query_single("select name from unit_query_single;").expect("huh?");
         assert_eq!(0,res.result.len())  
 
