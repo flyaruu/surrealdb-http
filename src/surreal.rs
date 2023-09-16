@@ -244,6 +244,10 @@ mod test {
         let first_object = v.as_array().unwrap().first().unwrap().as_object().unwrap().get("result").unwrap().as_array().unwrap().first().unwrap();
         let id = first_object.get("id").unwrap().as_str().unwrap();
         assert_eq!("test_table:puz9ai2wrzcz52be7g04",id);
+        surreal.delete("test_table", Some("puz9ai2wrzcz52be7g04")).unwrap();
+        // let res = surreal.get("test_table", "puz9ai2wrzcz52be7g04").unwrap();
+        // println!("Result: {:?}",res);
+        // assert!(surreal.get("test_table", "puz9ai2wrzcz52be7g04").is_err());
     }
 
 #[derive(Deserialize,Debug)]
