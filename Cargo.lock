@@ -716,9 +716,9 @@ dependencies = [
 
 [[package]]
 name = "simplehttp"
-version = "0.0.5"
+version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9aae90f137d38a2b528df0b32bd68157fec6c9c3b06f704d228efa909a6641a6"
+checksum = "c99d1f423d3148f76aaf17404eafbd8eb741c74fae9b128f0b7f344b816ba23f"
 dependencies = [
  "base64",
  "log",

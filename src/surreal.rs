@@ -59,6 +59,10 @@ impl DynamicSurrealStatementReply {
             
         ll.ok_or(SurrealDbError::EmptyResult)
     }
+
+    pub fn is_ok(&self)->bool {
+        self.status == SurrealStatus::OK
+    }
 }
 
 #[derive(Deserialize,Debug)]
@@ -78,6 +82,16 @@ impl SurrealDbClient {
         Self { auth_token, base_url: base_url.to_owned(), namespace: namespace.to_owned(), database: database.to_owned(), client}
     }
 
+fn parse_single_reply(data: &[u8])->Result<DynamicSurrealResult,SurrealDbError> {
+    let result: DynamicSurrealResult = serde_json::from_slice(data)
+        .map_err(|e| SurrealDbError::Other("Error parsing result".to_owned(),Box::new(e)))?;
+    // if !result.is_ok() {
+    //     return Err(SurrealDbError::NotOkStatus(result.status))
+    // }
+    Ok(result)
+}
+ 
+
     pub fn get(&mut self, table: &str, key: &str)->Result<Vec<u8>, SurrealDbError> {
         let headers = [
             ("DB",self.database.as_str()),
@@ -88,6 +102,8 @@ impl SurrealDbClient {
         let url = format!("{}/key/{}/{}",self.base_url,table,key);
         let result = self.client.get(&url, &headers[..])
             .map_err(|e| SurrealDbError::ServerError(format!("Error getting table: {} id: {}",table,key),e))?;
+        println!("Reply: {}",from_utf8(&result).unwrap());
+        // Self::parse_single_reply(&result)
         Ok(result)
     }
 
@@ -226,7 +242,6 @@ mod test {
     #[test]
     fn test_insert() {
         let mut surreal = create_test_client();
-        // surreal.del
         let example = r#"{"kip":{"aap":"sji"},"aap":{"mies":"sjo"}}"#.as_bytes();
         for _ in 0..10 {
             let id = surreal.insert_for_id("test_table", example).unwrap();
@@ -238,16 +253,15 @@ mod test {
     fn test_single(){
         let mut surreal = create_test_client();
         let example = r#"{"kip":{"aap":"sji"},"aap":{"mies":"sjo"}}"#;
+        surreal.delete("test_table", Some("puz9ai2wrzcz52be7g04")).unwrap();
         surreal.insert("test_table", Some("puz9ai2wrzcz52be7g04"), example.as_bytes()).unwrap();
-        let res = surreal.get("test_table", "puz9ai2wrzcz52be7g04").unwrap();
+        let mut res = surreal.get("test_table", "puz9ai2wrzcz52be7g04").unwrap();
         let v: Value = serde_json::from_slice(&res).unwrap();
         let first_object = v.as_array().unwrap().first().unwrap().as_object().unwrap().get("result").unwrap().as_array().unwrap().first().unwrap();
+
         let id = first_object.get("id").unwrap().as_str().unwrap();
         assert_eq!("test_table:puz9ai2wrzcz52be7g04",id);
         surreal.delete("test_table", Some("puz9ai2wrzcz52be7g04")).unwrap();
-        // let res = surreal.get("test_table", "puz9ai2wrzcz52be7g04").unwrap();
-        // println!("Result: {:?}",res);
-        // assert!(surreal.get("test_table", "puz9ai2wrzcz52be7g04").is_err());
     }
 
 #[derive(Deserialize,Debug)]
@@ -273,28 +287,6 @@ mod test {
         let res: SurrealStatementReply<City> = surreal.query_single("select name from unit_query_single;").expect("huh?");
         assert_eq!(0,res.result.len())  
     }
-
-//     #[test]
-//     fn test_complex_dynamic_query() {
-//         let mut surreal = create_test_client();
-//         let result = surreal.query_dynamic_single("SELECT *,->played_in->film.title as films FROM actor WHERE id=actor:1").unwrap();
-//         println!("Result: {:?}",result);
-
-//     }
-
-//     #[test]
-//     fn test_complex_static_query() {
-//         #[derive(Deserialize,Debug)]
-//         struct ActorWithFilms {
-//             films: Vec<String>,
-//             first_name: String,
-//             last_name: String,
-//             actor_id: usize,
-//         }
-//         let mut surreal = create_test_client();
-//         let result = surreal.query_single::<ActorWithFilms>("SELECT *,->played_in->film.title as films FROM actor WHERE id=actor:1").unwrap();
-//         println!("Result: {:?}",result.result.first().unwrap());
-//     }
 
 }
 

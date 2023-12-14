@@ -14,9 +14,9 @@ authors = ["Frank Lyaruu <flyaruu@gmail.com>"]
 base64 = "0.21.0"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.95"
-simplehttp = "0.0.5"
+simplehttp =  { version="0.0.6" }
 thiserror = "1.0.47"
 
 [dev-dependencies]
 env = "0.0.0"
-simplehttp = { version="0.0.5", features=["reqwest"] }
+simplehttp = { version="0.0.6", features=["reqwest"] }
